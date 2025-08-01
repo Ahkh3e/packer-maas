@@ -74,8 +74,8 @@ locals {
 
 source "qemu" "windows_builder" {
   accelerator      = "kvm"
-  boot_command     = ["<return>"]
-  boot_wait        = "2s"
+  boot_command     = ["<wait3s><return><wait1s><return><wait1s><return>"]
+  boot_wait        = "1s"
   communicator     = "none"
   disk_interface   = "sata"
   disk_image       = "${var.is_vhdx}"

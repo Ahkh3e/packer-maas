@@ -69,10 +69,10 @@
                 </OSImage>
             </ImageInstall>
             <UserData>
-                <!--<ProductKey>
-                    <Key>@PKEY@</Key>
+                <ProductKey>
+                    <Key></Key>
                     <WillShowUI>Never</WillShowUI>
-                </ProductKey>-->
+                </ProductKey>
                 <AcceptEula>true</AcceptEula>
             </UserData>
         </component>
