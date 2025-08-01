@@ -42,7 +42,7 @@ else
 	OVMF_SFX ?=
 endif
 
-.PHONY: all clean
+.PHONY: all clean clean-downloads clean-all
 
 all: windows
 
@@ -64,12 +64,31 @@ else ifeq ($(strip $(VERSION)),11)
 	sed -i 's/<!--<LocalAccounts>/<LocalAccounts>/;s/<\/LocalAccounts>-->/<\/LocalAccounts>/' $@
 endif
 
+http/downloads:
+	mkdir -p http/downloads
+
+# Individual download targets with conditional logic
+http/downloads/wdksetup.exe: http/downloads
+	test -s $@ || curl -L "https://download.microsoft.com/download/8/6/9/86925F0F-D57A-4BA4-8278-861B6876D78E/wdk/wdksetup.exe" -o $@
+
+http/downloads/CloudbaseInitSetup_Stable_x64.msi: http/downloads
+	test -s $@ || curl -L "https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi" -o $@
+
+http/downloads/virtio-win-gt-x64.msi: http/downloads
+	test -s $@ || curl -L "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win-gt-x64.msi" -o $@
+
+http/downloads/virtio-win-guest-tools.exe: http/downloads
+	test -s $@ || curl -L "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win-guest-tools.exe" -o $@
+
+downloads: http/downloads/wdksetup.exe http/downloads/CloudbaseInitSetup_Stable_x64.msi http/downloads/virtio-win-gt-x64.msi http/downloads/virtio-win-guest-tools.exe
+	mkisofs -o downloads.iso -V 'Downloads' -input-charset utf-8 -r -J http/downloads
+
 extra_drivers:
 	mkisofs -o drivers.iso -V 'Extra Drivers' -input-charset utf-8 -r -J drivers
 
-.INTERMEDIATE: extra_drivers http/Autounattend.xml
+.INTERMEDIATE: extra_drivers http/Autounattend.xml downloads
 
-windows: check-deps clean extra_drivers http/Autounattend.xml OVMF_VARS.fd
+windows: check-deps clean extra_drivers downloads http/Autounattend.xml OVMF_VARS.fd
 ifeq ($(strip $(VERSION)),11)
 	mkdir -p /tmp/swtpm; \
 	swtpm socket --daemon --tpm2 --tpmstate dir=/tmp/swtpm --ctrl type=unixio,path=/tmp/swtpm/swtpm-sock --log level=10
@@ -107,4 +126,9 @@ endif
 
 clean:
 	${RM} -rf output-* windows.dd.gz http/Autounattend.xml \
-	drivers.iso windows_builder.img OVMF_VARS.fd
+	drivers.iso downloads.iso windows_builder.img OVMF_VARS.fd
+
+clean-downloads:
+	${RM} -rf http/downloads downloads.iso
+
+clean-all: clean clean-downloads

@@ -61,10 +61,9 @@ try
             # To install extra drivers the Windows Driver Kit is needed for dpinst.exe.
             # Sadly you cannot just download dpinst.exe. The whole driver kit must be
             # installed.
-            # Download the WDK installer.
-            $Host.UI.RawUI.WindowTitle = "Downloading Windows Driver Kit..."
-            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest "https://download.microsoft.com/download/8/6/9/86925F0F-D57A-4BA4-8278-861B6876D78E/wdk/wdksetup.exe" -Outfile "c:\wdksetup.exe"
+            # Copy the WDK installer from downloads.
+            $Host.UI.RawUI.WindowTitle = "Copying Windows Driver Kit..."
+            Copy-Item "F:\wdksetup.exe" "c:\wdksetup.exe"
 
             # Run the installer.
             $Host.UI.RawUI.WindowTitle = "Installing Windows Driver Kit..."
@@ -84,12 +83,11 @@ try
             Start-Process -Wait -FilePath "c:\wdksetup.exe" -ArgumentList "/features + /q /uninstall /norestart"
 
             # Clean-up
-            Remove-Item -Path c:\wdksetup.exe
+            Remove-Item -Path c:\wdksetup.exe -Force
         }
 
         $Host.UI.RawUI.WindowTitle = "Installing Cloudbase-Init..."
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest "https://cloudbase.it/downloads/CloudbaseInitSetup_Stable_x64.msi" -Outfile "c:\cloudbase.msi"
+        Copy-Item "F:\CloudbaseInitSetup_Stable_x64.msi" "c:\cloudbase.msi"
         $cloudbaseInitLog = "$ENV:Temp\cloudbase_init.log"
         $serialPortName = @(Get-WmiObject Win32_SerialPort)[0].DeviceId
         $p = Start-Process -Wait -PassThru -FilePath msiexec -ArgumentList "/i c:\cloudbase.msi /qn /norestart /l*v $cloudbaseInitLog LOGGINGSERIALPORTNAME=$serialPortName"
@@ -100,10 +98,9 @@ try
 
         # Install virtio drivers
         $Host.UI.RawUI.WindowTitle = "Installing Virtio Drivers..."
-        certutil -addstore "TrustedPublisher" A:\rh.cer
-        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        Invoke-WebRequest "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win-gt-x64.msi" -Outfile "c:\virtio.msi"
-        Invoke-WebRequest "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win-guest-tools.exe" -Outfile "c:\virtio.exe"
+        certutil -f -addstore "TrustedPublisher" A:\rh.cer
+        Copy-Item "F:\virtio-win-gt-x64.msi" "c:\virtio.msi"
+        Copy-Item "F:\virtio-win-guest-tools.exe" "c:\virtio.exe"
         $virtioLog = "$ENV:Temp\virtio.log"
         $serialPortName = @(Get-WmiObject Win32_SerialPort)[0].DeviceId
         $p = Start-Process -Wait -PassThru -FilePath msiexec -ArgumentList "/a c:\virtio.msi /qn /norestart /l*v $virtioLog LOGGINGSERIALPORTNAME=$serialPortName"
@@ -123,9 +120,9 @@ try
         }
 
         # Clean-up
-        Remove-Item -Path c:\cloudbase.msi
-        Remove-Item -Path c:\virtio.msi
-        Remove-Item -Path c:\virtio.exe
+        Remove-Item -Path c:\cloudbase.msi -Force
+        Remove-Item -Path c:\virtio.msi -Force
+        Remove-Item -Path c:\virtio.exe -Force
 
         # Write success, this is used to check that this process made it this far
         New-Item -Path c:\success.tch -Type file -Force

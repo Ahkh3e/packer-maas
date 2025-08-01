@@ -61,6 +61,7 @@ locals {
     ["-drive", "file=output-windows_builder/packer-windows_builder,format=raw"],
     ["-cdrom", "${var.iso_path}"],
     ["-drive", "file=drivers.iso,media=cdrom,index=3"],
+    ["-drive", "file=downloads.iso,media=cdrom,index=4"],
     ["-boot", "d"]
   ]
   tpmargs = [
@@ -87,8 +88,8 @@ source "qemu" "windows_builder" {
   iso_checksum     = "none"
   iso_url          = "${var.iso_path}"
   machine_type     = "q35"
-  memory           = "4096"
-  cpus             = "2"
+  memory           = "24096"
+  cpus             = "8"
   net_device       = "e1000"
   qemuargs         = concat(local.baseargs, (var.use_tpm == "yes" ? local.tpmargs : []))
   shutdown_timeout = "${var.timeout}"
