@@ -13,7 +13,7 @@ The Packer templates in this directory creates Windows Server images for use wit
 * ovmf
 * cloud-image-utils
 * [Packer](https://www.packer.io/intro/getting-started/install.html), v1.7.0 or newer
-* Ubuntu 22.04+ is required to build Windows 11 images (swtpm package)
+* Ubuntu 24.04+ is required to build Windows 11 images (swtpm package)
 
 
 ## Requirements (to deploy the image)
