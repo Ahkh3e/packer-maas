@@ -12,6 +12,7 @@ VERSION ?= 2022
 HEADLESS ?= false
 TIMEOUT ?= 1h
 TEMPLATE ?= http/Autounattend.xml.${FORMAT}.template
+BUILD_ID ?= build-$(shell date +%Y%m%d-%H%M%S)
 
 ifeq ($(strip $(VERSION)),10)
 	TYPE = Windows
@@ -89,6 +90,11 @@ extra_drivers:
 .INTERMEDIATE: extra_drivers http/Autounattend.xml downloads
 
 windows: check-deps clean extra_drivers downloads http/Autounattend.xml OVMF_VARS.fd
+	@echo "Starting log server for build: ${BUILD_ID}"
+	@mkdir -p build_logs
+	@python3 scripts/log_server.py 8080 & echo $$! > /tmp/log_server.pid
+	@sleep 2
+	@echo "Log server started (PID: $$(cat /tmp/log_server.pid))"
 ifeq ($(strip $(VERSION)),11)
 	mkdir -p /tmp/swtpm; \
 	swtpm socket --daemon --tpm2 --tpmstate dir=/tmp/swtpm --ctrl type=unixio,path=/tmp/swtpm/swtpm-sock --log level=10
@@ -107,26 +113,45 @@ ifneq ($(strip $(VHDX)),)
 	umount $${TMP_DIR}; \
 	qemu-nbd -d $${nbd}; \
 	rmdir $${TMP_DIR};
-	${PACKER} init . && ${PACKER} build -var iso_path=windows_builder.img \
+	BUILD_ID=${BUILD_ID} ${PACKER} init . && BUILD_ID=${BUILD_ID} ${PACKER} build -var iso_path=windows_builder.img \
 			-var headless=${HEADLESS} \
 			-var ovmf_suffix=${OVMF_SFX} \
 			-var timeout=${TIMEOUT} \
 			-var is_vhdx=true \
 			-var disk_size=64G \
-			windows.pkr.hcl
+			windows.pkr.hcl; \
+	BUILD_EXIT_CODE=$$?; \
+	if [ -f /tmp/log_server.pid ]; then \
+		echo "Stopping log server (PID: $$(cat /tmp/log_server.pid))..."; \
+		kill $$(cat /tmp/log_server.pid) 2>/dev/null || true; \
+		rm -f /tmp/log_server.pid; \
+	fi; \
+	exit $$BUILD_EXIT_CODE
 else
-	${PACKER} init . && ${PACKER} build -var iso_path=${ISO} \
+	BUILD_ID=${BUILD_ID} ${PACKER} init . && BUILD_ID=${BUILD_ID} ${PACKER} build -var iso_path=${ISO} \
 			-var headless=${HEADLESS} \
 			-var ovmf_suffix=${OVMF_SFX} \
 			-var is_vhdx=false \
 			-var timeout=${TIMEOUT} \
 			-var use_tpm=${USE_TPM} \
-			windows.pkr.hcl
+			windows.pkr.hcl; \
+	BUILD_EXIT_CODE=$$?; \
+	if [ -f /tmp/log_server.pid ]; then \
+		echo "Stopping log server (PID: $$(cat /tmp/log_server.pid))..."; \
+		kill $$(cat /tmp/log_server.pid) 2>/dev/null || true; \
+		rm -f /tmp/log_server.pid; \
+	fi; \
+	exit $$BUILD_EXIT_CODE
 endif
 
 clean:
 	${RM} -rf output-* windows.dd.gz http/Autounattend.xml \
 	drivers.iso downloads.iso windows_builder.img OVMF_VARS.fd
+	@if [ -f /tmp/log_server.pid ]; then \
+		echo "Stopping any running log server..."; \
+		kill $$(cat /tmp/log_server.pid) 2>/dev/null || true; \
+		rm -f /tmp/log_server.pid; \
+	fi
 
 clean-downloads:
 	${RM} -rf http/downloads downloads.iso

@@ -75,7 +75,7 @@ locals {
 source "qemu" "windows_builder" {
   accelerator      = "kvm"
   boot_command     = ["<wait3s><return><wait1s><return><wait1s><return>"]
-  boot_wait        = "1s"
+  boot_wait        = "5s"
   communicator     = "none"
   disk_interface   = "sata"
   disk_image       = "${var.is_vhdx}"
@@ -89,7 +89,7 @@ source "qemu" "windows_builder" {
   iso_url          = "${var.iso_path}"
   machine_type     = "q35"
   memory           = "24096"
-  cpus             = "8"
+  cpus             = "24"
   net_device       = "e1000"
   qemuargs         = concat(local.baseargs, (var.use_tpm == "yes" ? local.tpmargs : []))
   shutdown_timeout = "${var.timeout}"

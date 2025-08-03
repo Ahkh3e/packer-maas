@@ -129,6 +129,56 @@ Path to Microsoft Windows VHDX image used to build the image.
 Specify the Microsoft Windows Version. Example inputs include: HCI, 2025, 2022, 2019, 2016, 10
 and 11.
 
+#### BUILD_ID
+
+Custom identifier for the build session. Defaults to timestamp format (`build-YYYYMMDD-HHMMSS`).
+Used to organize build logs in the `build_logs/` directory.
+
+Example:
+```shell
+sudo make ISO=/path/to/windows.iso VERSION=2022 BUILD_ID=production-v1.2.3
+```
+
+
+## Build Logging
+
+The build process includes comprehensive logging with both local and remote capabilities:
+
+### Local Logs
+- Console output during the build process
+- Local log file created at `c:\setup_log.txt` inside the Windows VM
+
+### Remote Logs  
+- Automatic HTTP log server starts during build
+- Logs organized by build ID in `build_logs/{BUILD_ID}/setup.log`
+- Logs persist after VM destruction for debugging
+- Real-time console output shows progress with build ID prefix
+
+### Log Server
+The Makefile automatically:
+1. Starts a Python HTTP log server on localhost:8080 before the build
+2. Stops the server after build completion (success or failure)
+3. Creates `build_logs/` directory structure
+
+### Build Log Structure
+```
+build_logs/
+├── build-20250802-143052/
+│   └── setup.log
+├── production-v1.2.3/
+│   └── setup.log
+└── my-test-build/
+    └── setup.log
+```
+
+Each log contains timestamped entries from the Windows setup process including:
+- Driver installation progress
+- Cloudbase-Init setup
+- Virtio driver installation
+- BitLocker decryption status
+- Sysprep execution
+- Error details if build fails
+
 
 ## Uploading images to MAAS
 
